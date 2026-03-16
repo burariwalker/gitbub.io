@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Background colors -->
+    <color name="background_dark">#121212</color>
+    <color name="card_background">#1E1E1E</color>
+    <color name="card_code_background">#0D1117</color>
+
+    <!-- Text colors -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#888888</color>
+    <color name="text_code">#E0E0E0</color>
+
+    <!-- Accent colors -->
+    <color name="accent_blue">#4FC3F7</color>
+    <color name="accent_green">#81C784</color>
+    <color name="success_green">#4CAF50</color>
+    <color name="error_red">#EF5350</color>
+
+    <!-- UI elements -->
+    <color name="divider_color">#2E2E2E</color>
+    <color name="btn_scenario_default">#2E2E2E</color>
+    <color name="btn_scenario_selected">#1565C0</color>
+
+    <!-- Primary colors for theme -->
+    <color name="colorPrimary">#1976D2</color>
+    <color name="colorPrimaryVariant">#1565C0</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+    <color name="colorSecondary">#4FC3F7</color>
+    <color name="colorOnSecondary">#000000</color>
+    <color name="colorSurface">#1E1E1E</color>
+    <color name="colorOnSurface">#FFFFFF</color>
+    <color name="colorBackground">#121212</color>
+    <color name="colorOnBackground">#FFFFFF</color>
+    <color name="colorError">#EF5350</color>
+    <color name="colorOnError">#FFFFFF</color>
+
+    <!-- Scenario button selector states -->
+    <color name="btn_scenario_selector">@android:color/transparent</color>
+</resources>

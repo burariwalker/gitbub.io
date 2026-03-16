@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_dark"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Gemini Nano プロンプト検証"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:gravity="center"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ML Kit GenAI Prompt API テストアプリ"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:gravity="center"
+            android:paddingBottom="16dp" />
+
+        <!-- Status -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/card_background"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="ステータス"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:paddingBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="初期化中..."
+                    android:textSize="14sp"
+                    android:textColor="@color/text_primary" />
+
+                <ProgressBar
+                    android:id="@+id/progressBar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="4dp"
+                    android:layout_marginTop="8dp"
+                    android:indeterminate="true"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Scenario Selection -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. シナリオを選択"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:paddingBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/btnScenario1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:text="🌅 朝の家族との会話（朝食中）"
+                android:textSize="14sp"
+                android:backgroundTint="@color/btn_scenario_selector"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+            <Button
+                android:id="@+id/btnScenario2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:text="💼 仕事の会議（進捗報告）"
+                android:textSize="14sp"
+                android:backgroundTint="@color/btn_scenario_selector"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+            <Button
+                android:id="@+id/btnScenario3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:text="💬 友人との雑談（週末の予定）"
+                android:textSize="14sp"
+                android:backgroundTint="@color/btn_scenario_selector"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+        </LinearLayout>
+
+        <!-- Selected scenario label -->
+        <TextView
+            android:id="@+id/tvScenarioLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="12sp"
+            android:textColor="@color/accent_blue"
+            android:paddingBottom="4dp" />
+
+        <!-- Transcript Preview -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/card_background"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="会話テキスト（プレビュー）"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:paddingBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/tvTranscriptPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="シナリオを選択すると表示されます"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_primary"
+                    android:maxLines="8"
+                    android:ellipsize="end"
+                    android:scrollbars="vertical"
+                    android:visibility="visible" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Previous Context (Sliding Window) -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2. Previous Context（スライディングウィンドウ）"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="実行後、前回のsummaryが自動入力されます。空欄の場合は「なし」として送信"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:paddingBottom="8dp" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            app:cardBackgroundColor="@color/card_background"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="2dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etPreviousContext"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minLines="3"
+                android:maxLines="6"
+                android:padding="12dp"
+                android:hint="前回の要約（任意）"
+                android:textSize="13sp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
+                android:background="@null"
+                android:gravity="top|start"
+                android:inputType="textMultiLine" />
+        </androidx.cardview.widget.CardView>
+
+        <Button
+            android:id="@+id/btnClearContext"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="コンテキストをクリア"
+            android:textSize="12sp"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+        <!-- Run Button -->
+        <Button
+            android:id="@+id/btnRun"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="16dp"
+            android:text="3. Gemini Nano で実行"
+            android:textSize="16sp"
+            android:enabled="false" />
+
+        <!-- Raw Output -->
+        <TextView
+            android:id="@+id/tvRawOutputLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="生出力（Raw Output）"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:paddingBottom="8dp"
+            android:visibility="gone" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            app:cardBackgroundColor="@color/card_code_background"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="2dp">
+
+            <TextView
+                android:id="@+id/tvRawOutput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="12dp"
+                android:text=""
+                android:textSize="12sp"
+                android:textColor="@color/text_code"
+                android:fontFamily="monospace"
+                android:visibility="gone" />
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:id="@+id/tvCharCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:gravity="end"
+            android:paddingBottom="12dp"
+            android:visibility="gone" />
+
+        <!-- Parse Result -->
+        <TextView
+            android:id="@+id/tvParseResultLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="JSONパース結果"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:paddingBottom="8dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvParseStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="8dp"
+            android:visibility="gone" />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardParseDetails"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            app:cardBackgroundColor="@color/card_background"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="2dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <!-- Summary -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="summary"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_secondary"
+                    android:paddingBottom="2dp" />
+
+                <TextView
+                    android:id="@+id/tvSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="14sp"
+                    android:textColor="@color/text_primary"
+                    android:paddingBottom="10dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider_color"
+                    android:layout_marginBottom="10dp" />
+
+                <!-- Tags -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="tags"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_secondary"
+                    android:paddingBottom="2dp" />
+
+                <TextView
+                    android:id="@+id/tvTags"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="14sp"
+                    android:textColor="@color/accent_blue"
+                    android:paddingBottom="10dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider_color"
+                    android:layout_marginBottom="10dp" />
+
+                <!-- Mood -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="mood"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_secondary"
+                    android:paddingBottom="2dp" />
+
+                <TextView
+                    android:id="@+id/tvMood"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:paddingBottom="10dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider_color"
+                    android:layout_marginBottom="10dp" />
+
+                <!-- Feedback -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="feedback"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_secondary"
+                    android:paddingBottom="2dp" />
+
+                <TextView
+                    android:id="@+id/tvFeedback"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="14sp"
+                    android:textColor="@color/accent_green"
+                    android:textStyle="italic" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+</ScrollView>
