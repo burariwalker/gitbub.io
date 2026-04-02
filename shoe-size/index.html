@@ -146,6 +146,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP'
 .no-camera-fallback p{color:var(--muted);font-size:14px;margin-bottom:16px}
 .file-label{display:inline-block;padding:14px 28px;background:linear-gradient(135deg,var(--primary),#7B6FEF);
   color:#fff;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer}
+/* API key help */
+.help-toggle{background:none;border:1px solid var(--border);border-radius:10px;padding:10px 14px;
+  width:100%;text-align:left;cursor:pointer;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.help-toggle:hover{border-color:var(--primary);color:var(--primary)}
+.help-box{background:#F8F9FF;border:1px solid var(--border);border-radius:12px;padding:16px;
+  margin-bottom:16px;display:none;font-size:13px;line-height:1.7;color:var(--text)}
+.help-box.open{display:block}
+.help-box ol{padding-left:20px;margin-top:8px}
+.help-box li{margin-bottom:6px}
+.help-box a{color:var(--primary);font-weight:700}
+/* Photo tips */
+.tips-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.tip-card{border-radius:12px;padding:12px;text-align:center;font-size:12px;line-height:1.5}
+.tip-ok{background:#E8F5E9;border:1px solid #A5D6A7;color:#2E7D32}
+.tip-ng{background:#FFF0F0;border:1px solid #FFCDD2;color:#C62828}
+.tip-card .tip-icon{font-size:28px;display:block;margin-bottom:6px}
+.tip-card strong{display:block;font-size:13px;margin-bottom:4px}
+/* Width explanation */
+.width-explain{background:var(--primary-light);border-radius:12px;padding:14px 16px;
+  width:100%;max-width:480px;margin-bottom:12px;font-size:13px;line-height:1.6;color:var(--text)}
+.width-explain strong{color:var(--primary)}
+/* Shoe tips */
+.shoe-tips{background:#FFFBF0;border:1px solid #FFE082;border-radius:12px;padding:14px 16px;
+  width:100%;max-width:480px;margin-bottom:16px;font-size:13px;line-height:1.7}
+.shoe-tips h4{font-size:14px;font-weight:800;margin-bottom:8px;color:#7A5500}
+.shoe-tips li{margin-left:16px;margin-bottom:4px;color:#5D4000}
+/* Step label on capture */
+.capture-tip{background:rgba(255,255,255,0.9);border-radius:10px;padding:10px 14px;
+  width:100%;max-width:480px;font-size:13px;color:var(--text);margin-top:10px;
+  border-left:3px solid var(--primary);line-height:1.5}
 </style>
 </head>
 <body>
@@ -155,32 +185,58 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP'
   <div class="hero card">
     <span class="hero-icon">👟</span>
     <h1>こどもの足サイズ<br>計測アプリ</h1>
-    <p>写真を撮るだけで足のサイズ（長さ・幅・甲の高さ）を計測し、最適な靴をご提案します</p>
+    <p>写真を撮るだけでOK！AIが足の長さ・幅・甲の高さを計測し、最適な靴サイズをご提案します</p>
   </div>
 
   <div class="card">
+    <div style="font-size:14px;font-weight:700;color:var(--muted);margin-bottom:12px">📋 使い方（全3ステップ）</div>
     <div class="how-steps">
       <div class="how-step">
         <div class="step-num">1</div>
-        <div class="step-text"><h3>写真を撮影</h3><p>A4用紙の上に足を置き、真上・横から撮影</p></div>
+        <div class="step-text">
+          <h3>A4用紙の上に足を置く</h3>
+          <p>コピー用紙などA4サイズの紙を床に置き、足をのせます。紙が「ものさし」になります</p>
+        </div>
       </div>
       <div class="how-step">
         <div class="step-num">2</div>
-        <div class="step-text"><h3>AIが自動計測</h3><p>Claude AIがA4用紙を基準に長さ・幅・甲の高さを計算</p></div>
+        <div class="step-text">
+          <h3>真上と横から撮影</h3>
+          <p>スマホのカメラで「真上から（必須）」と「横から（推奨）」の2枚を撮影します</p>
+        </div>
       </div>
       <div class="how-step">
         <div class="step-num">3</div>
-        <div class="step-text"><h3>最適な靴を提案</h3><p>足型に合ったブランドとサイズをご提案</p></div>
+        <div class="step-text">
+          <h3>AIが自動でサイズを計算</h3>
+          <p>足の長さ・幅・甲の高さを計算し、ぴったりの靴ブランドをご提案します</p>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="card">
     <div class="input-group">
-      <label>Anthropic APIキー</label>
+      <label>🔑 Anthropic APIキー</label>
       <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off">
     </div>
-    <div class="notice">🔒 APIキーはこのタブ内のみで使用され、外部には送信されません。タブを閉じると自動的に消去されます。</div>
+    <button class="help-toggle" onclick="toggleHelp()" id="help-toggle-btn">
+      ❓ APIキーって何？どこで取るの？ ▼
+    </button>
+    <div class="help-box" id="api-help-box">
+      <strong>APIキーとは？</strong><br>
+      このアプリはAnthropicのAIサービスを使って足の写真を解析します。APIキーはそのサービスを利用するための「パスワード」のようなものです。<br><br>
+      <strong>取得方法（無料でお試しできます）：</strong>
+      <ol>
+        <li><a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> にアクセス</li>
+        <li>アカウントを作成してログイン</li>
+        <li>左メニューの「API Keys」→「Create Key」をクリック</li>
+        <li>表示された「sk-ant-...」から始まる文字列をコピー</li>
+        <li>上の入力欄に貼り付ける</li>
+      </ol>
+      <br>※ 新規登録で$5分の無料クレジットがもらえます。このアプリの1回の計測は約0.01〜0.03ドルです。
+    </div>
+    <div class="notice">🔒 入力したAPIキーはこのブラウザのタブ内にのみ保存されます。タブを閉じると自動的に消去され、外部サーバーには送信されません。</div>
     <div id="key-error" style="color:var(--accent);font-size:13px;margin-bottom:12px;display:none"></div>
     <button class="btn btn-primary" onclick="startApp()">はじめる →</button>
   </div>
@@ -232,19 +288,57 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP'
     <div class="how-steps">
       <div class="how-step">
         <div class="step-num">1</div>
-        <div class="step-text"><h3>A4用紙を床に置く</h3><p>白紙のA4用紙（コピー用紙など）を平らな床に置いてください</p></div>
+        <div class="step-text">
+          <h3>A4用紙を明るい床に置く</h3>
+          <p>コピー用紙・印刷用紙など白いA4サイズの紙1枚を、明るい床（フローリングや畳）に置きます</p>
+        </div>
       </div>
       <div class="how-step">
         <div class="step-num">2</div>
-        <div class="step-text"><h3>足をA4の上に置く</h3><p>かかとをA4の端に合わせ、足全体が用紙内に収まるよう置いてください</p></div>
+        <div class="step-text">
+          <h3>かかとをA4の端に合わせる</h3>
+          <p>用紙の短い辺（210mm側）にかかとの端をぴったり合わせます。足全体が用紙に収まるよう置いてください</p>
+        </div>
       </div>
       <div class="how-step">
         <div class="step-num">3</div>
-        <div class="step-text"><h3>真上から撮影</h3><p>A4用紙全体と足が写るよう、真上から撮影してください（ブレに注意）</p></div>
+        <div class="step-text">
+          <h3>スマホを頭上に持ち、真上から撮影</h3>
+          <p>腕をまっすぐ上に伸ばし、A4用紙全体と足がすべて映るよう撮影。影が入らないように注意！</p>
+        </div>
       </div>
       <div class="how-step">
         <div class="step-num">4</div>
-        <div class="step-text"><h3>横からも撮影（任意）</h3><p>甲の高さ確認のため、足の横からも撮影すると精度が上がります</p></div>
+        <div class="step-text">
+          <h3>横からも撮影（おすすめ）</h3>
+          <p>足の真横（くるぶしの高さ）から、甲全体が見えるよう撮影。甲高かどうかを判定できます</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:16px">
+    <div style="font-size:14px;font-weight:700;margin-bottom:10px">📸 うまく撮るコツ</div>
+    <div class="tips-grid">
+      <div class="tip-card tip-ok">
+        <span class="tip-icon">✅</span>
+        <strong>OK な撮影</strong>
+        明るい場所・A4全体が見える・影なし・ブレなし
+      </div>
+      <div class="tip-card tip-ng">
+        <span class="tip-icon">❌</span>
+        <strong>NG な撮影</strong>
+        暗い・斜め撮影・A4が切れる・影がかかる
+      </div>
+      <div class="tip-card tip-ok">
+        <span class="tip-icon">✅</span>
+        <strong>足の置き方</strong>
+        かかとをA4の端に合わせ、指を自然に伸ばした状態
+      </div>
+      <div class="tip-card tip-ng">
+        <span class="tip-icon">❌</span>
+        <strong>避けること</strong>
+        靴下・タイツを履いたまま・指を曲げた状態
       </div>
     </div>
   </div>
@@ -264,8 +358,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP'
   </div>
 
   <div style="width:100%;max-width:480px;margin-bottom:12px">
-    <h2 style="font-size:20px;font-weight:800;color:var(--primary)">📷 上から撮影</h2>
-    <p style="color:var(--muted);font-size:13px;margin-top:4px">A4用紙ごと足全体が写るよう、真上から撮影してください</p>
+    <h2 style="font-size:20px;font-weight:800;color:var(--primary)">📷 Step 1：上から撮影（必須）</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:4px">A4用紙の上に裸足を置き、紙と足が全部写るよう真上から撮影してください</p>
   </div>
 
   <div id="camera-top-wrapper" class="camera-wrapper">
@@ -298,6 +392,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP'
     </div>
     <button class="btn btn-ghost" onclick="retakePhoto('top')" id="retake-top-btn" style="display:none">📷 撮り直す</button>
   </div>
+  <div class="capture-tip">
+    💡 <strong>ポイント：</strong>腕をまっすぐ上に伸ばして撮影。A4用紙の四隅すべてが写っていれば完璧です！
+  </div>
   <div style="height:20px"></div>
 </div>
 
@@ -312,8 +409,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP'
   </div>
 
   <div style="width:100%;max-width:480px;margin-bottom:12px">
-    <h2 style="font-size:20px;font-weight:800;color:var(--primary)">📷 横から撮影（任意）</h2>
-    <p style="color:var(--muted);font-size:13px;margin-top:4px">足の甲の高さを確認するため、横から撮影してください</p>
+    <h2 style="font-size:20px;font-weight:800;color:var(--primary)">📷 Step 2：横から撮影（推奨）</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:4px">足の真横（くるぶしの高さ）から撮影すると、甲の高さを判定できます。スキップもできます</p>
   </div>
 
   <div id="camera-side-wrapper" class="camera-wrapper">
@@ -349,6 +446,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP'
     </div>
     <button class="btn btn-ghost" onclick="retakePhoto('side')" id="retake-side-btn" style="display:none">📷 撮り直す</button>
     <button class="btn btn-ghost" onclick="skipSideAndAnalyze()">スキップして解析する</button>
+  </div>
+  <div class="capture-tip">
+    💡 <strong>ポイント：</strong>カメラを床と水平にし、足首〜つま先が全部写るように。スリッパや靴下は脱いでください。
   </div>
   <div style="height:20px"></div>
 </div>
@@ -445,6 +545,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP'
   <div id="ai-notes-card" class="card" style="display:none;width:100%;max-width:480px;margin-bottom:16px">
     <div style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px">AIからのメモ</div>
     <div id="ai-notes-text" style="font-size:14px;color:var(--text);line-height:1.5"></div>
+  </div>
+
+  <!-- Width explanation for non-engineers -->
+  <div class="width-explain" id="width-explain-box" style="display:none">
+    <strong id="width-explain-title">足幅について</strong><br>
+    <span id="width-explain-text"></span>
+  </div>
+
+  <!-- Shoe selection tips -->
+  <div class="shoe-tips" id="shoe-tips-box" style="display:none">
+    <h4>👟 靴を選ぶときのコツ</h4>
+    <ul>
+      <li>実際の足長より <strong>1cm大きいサイズ</strong>（推奨サイズ）が成長余裕の目安です</li>
+      <li>午後〜夕方は足が <strong>むくんで大きくなる</strong> ため、その時間帯の計測が理想的です</li>
+      <li>購入前は必ず <strong>試し履きして5〜10分歩く</strong> か確認してください</li>
+      <li>幅が合わないと外反母趾や巻き爪の原因になります。<strong>幅のゆとりも大切</strong>です</li>
+    </ul>
   </div>
 
   <!-- Brand recommendations -->
@@ -546,7 +663,7 @@ function getWidthCategory(widthMm, lengthMm) {
 
 function calcShoeSize(lengthMm) {
   const cm = lengthMm / 10;
-  const withAllowance = cm + 0.5;
+  const withAllowance = cm + 1.0;
   const rounded = Math.round(withAllowance * 2) / 2;
   return { cm: cm.toFixed(1), recommended: rounded.toFixed(1), range: `${rounded.toFixed(1)}〜${(rounded+0.5).toFixed(1)}` };
 }
@@ -598,6 +715,15 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
+}
+
+function toggleHelp() {
+  const box = document.getElementById('api-help-box');
+  const btn = document.getElementById('help-toggle-btn');
+  const isOpen = box.classList.toggle('open');
+  btn.textContent = isOpen
+    ? '❓ APIキーって何？どこで取るの？ ▲'
+    : '❓ APIキーって何？どこで取るの？ ▼';
 }
 
 function startApp() {
@@ -899,7 +1025,7 @@ function showResults() {
 
   // Shoe size
   document.getElementById('shoe-size-num').textContent = shoe.recommended;
-  document.getElementById('shoe-size-range').textContent = `実寸 ${shoe.cm}cm → 推奨 ${shoe.range}cm`;
+  document.getElementById('shoe-size-range').textContent = `実寸 ${shoe.cm}cm ＋1cm余裕 → 推奨 ${shoe.range}cm`;
 
   // Confidence
   const badge = document.getElementById('confidence-badge');
@@ -912,6 +1038,24 @@ function showResults() {
     document.getElementById('ai-notes-card').style.display='block';
     document.getElementById('ai-notes-text').textContent = r.notes;
   }
+
+  // Width explanation for non-engineers
+  const widthExplains = {
+    'D': '細め（ナロー）の足型です。一般的な靴では少し横幅が余ることがあります。細め設計のブランドが合いやすいです。',
+    'E': '標準的な足幅です。ほとんどのブランドがE幅対応のため、選択肢が豊富です。',
+    'EE': 'やや幅広の足型です。通常のEE（2E）対応の靴を選びましょう。窮屈感が出やすいので幅広設計がおすすめです。',
+    'EEE': '幅広（3E）の足型です。幅広専用設計のブランドを選ぶことが重要です。普通の靴では小指が当たりやすいです。',
+    'EEEE': '超幅広（4E以上）の足型です。幅広対応の専門ブランドをお選びください。サイズ展開が限られる場合があります。'
+  };
+  const wexpBox = document.getElementById('width-explain-box');
+  const wexpTitle = document.getElementById('width-explain-title');
+  const wexpText = document.getElementById('width-explain-text');
+  wexpBox.style.display='block';
+  wexpTitle.textContent = `足幅カテゴリ「${wcat.code}」について`;
+  wexpText.textContent = widthExplains[wcat.code] || '';
+
+  // Show shoe tips
+  document.getElementById('shoe-tips-box').style.display='block';
 
   // Brand recommendations
   const matched = BRANDS.filter(b =>
