@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#5B4FCF">
+<title>こどもの足サイズ計測アプリ</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#5B4FCF;--primary-dark:#4840B0;--primary-light:#EEF0FF;
+  --accent:#FF6B6B;--success:#4CAF50;--warning:#FF9800;
+  --bg:#f0f2ff;--card:#fff;--text:#2D2D44;--muted:#7A7A9D;
+  --border:#E8E8F4;--radius:20px;
+  --shadow:0 8px 32px rgba(91,79,207,0.15);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.screen{display:none;min-height:100vh;flex-direction:column;align-items:center;padding:24px 16px 40px}
+.screen.active{display:flex}
+.app-header{width:100%;max-width:480px;display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.back-btn{background:none;border:none;font-size:24px;cursor:pointer;color:var(--primary);padding:8px}
+.step-dots{display:flex;gap:8px;justify-content:center;flex:1}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--border);transition:all .3s}
+.dot.active{background:var(--primary);transform:scale(1.2)}
+.dot.done{background:var(--primary);opacity:.5}
+.card{background:var(--card);border-radius:var(--radius);padding:24px;width:100%;max-width:480px;box-shadow:var(--shadow);margin-bottom:16px}
+.hero{text-align:center;padding:32px 24px}
+.hero-icon{font-size:72px;margin-bottom:16px;display:block;filter:drop-shadow(0 4px 8px rgba(91,79,207,0.3))}
+.hero h1{font-size:26px;font-weight:800;color:var(--primary);line-height:1.3;margin-bottom:8px}
+.hero p{color:var(--muted);font-size:15px;line-height:1.6}
+.btn{display:block;width:100%;max-width:480px;padding:16px;border:none;border-radius:14px;
+  font-size:17px;font-weight:700;cursor:pointer;transition:all .2s;text-align:center;text-decoration:none}
+.btn-primary{background:linear-gradient(135deg,var(--primary),#7B6FEF);color:#fff;
+  box-shadow:0 6px 24px rgba(91,79,207,0.35)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(91,79,207,0.45)}
+.btn-primary:active{transform:translateY(0)}
+.btn-secondary{background:var(--primary-light);color:var(--primary)}
+.btn-ghost{background:transparent;color:var(--muted);font-size:15px;padding:12px}
+.input-group{margin-bottom:20px}
+.input-group label{display:block;font-size:14px;font-weight:600;color:var(--muted);margin-bottom:8px}
+.input-group input{width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:12px;
+  font-size:16px;transition:border .2s;outline:none;background:#FAFAFF}
+.input-group input:focus{border-color:var(--primary)}
+.notice{background:#FFF8E1;border-left:4px solid var(--warning);border-radius:8px;padding:12px 16px;
+  font-size:13px;color:#7A6200;margin-bottom:16px;line-height:1.5}
+.how-steps{display:flex;flex-direction:column;gap:16px;margin:16px 0}
+.how-step{display:flex;align-items:flex-start;gap:14px}
+.step-num{min-width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#7B6FEF);
+  color:#fff;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 10px rgba(91,79,207,0.3)}
+.step-text h3{font-size:15px;font-weight:700;margin-bottom:3px}
+.step-text p{font-size:13px;color:var(--muted);line-height:1.4}
+/* Camera screen */
+.camera-wrapper{width:100%;max-width:480px;position:relative;border-radius:var(--radius);
+  overflow:hidden;background:#111;aspect-ratio:3/4;box-shadow:var(--shadow)}
+#video-top,#video-side{width:100%;height:100%;object-fit:cover;display:block}
+.camera-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.frame-guide{border:3px dashed rgba(255,255,255,0.6);border-radius:12px;width:85%;height:75%;
+  position:relative}
+.frame-guide::after{content:'A4用紙+足をここに';position:absolute;bottom:-28px;left:50%;
+  transform:translateX(-50%);color:rgba(255,255,255,0.8);font-size:13px;white-space:nowrap;
+  background:rgba(0,0,0,0.4);padding:4px 10px;border-radius:20px}
+.camera-controls{width:100%;max-width:480px;margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.capture-btn{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#7B6FEF);
+  border:4px solid white;box-shadow:0 6px 24px rgba(91,79,207,0.4);cursor:pointer;
+  font-size:32px;margin:0 auto;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.capture-btn:active{transform:scale(0.92)}
+.photo-preview{width:100%;max-width:480px;border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--shadow);margin-top:8px;display:none}
+.photo-preview img{width:100%;display:block}
+.photo-preview-badge{background:var(--success);color:#fff;font-size:13px;font-weight:700;
+  padding:8px 16px;text-align:center}
+/* Analyzing */
+.analyzing-container{text-align:center;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:80vh;gap:24px}
+.analyzing-icon{font-size:80px;animation:bounce 1.2s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)}}
+.analyzing-title{font-size:22px;font-weight:800;color:var(--primary)}
+.analyzing-status{color:var(--muted);font-size:15px;min-height:24px;transition:all .3s}
+.progress-bar-wrapper{width:240px;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--primary),#7B6FEF);
+  border-radius:3px;transition:width .5s;width:0%}
+.dots-loading{display:flex;gap:8px;justify-content:center;margin-top:8px}
+.dots-loading span{width:10px;height:10px;border-radius:50%;background:var(--primary);
+  animation:dotPulse 1.4s infinite ease-in-out both}
+.dots-loading span:nth-child(1){animation-delay:-.32s}
+.dots-loading span:nth-child(2){animation-delay:-.16s}
+@keyframes dotPulse{0%,80%,100%{transform:scale(0);opacity:.5}40%{transform:scale(1);opacity:1}}
+/* Results */
+.results-header{text-align:center;margin-bottom:20px;width:100%;max-width:480px}
+.results-header h1{font-size:24px;font-weight:800;color:var(--primary)}
+.results-header p{color:var(--muted);font-size:14px;margin-top:4px}
+.measurement-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:480px;margin-bottom:16px}
+.measure-card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 4px 16px rgba(91,79,207,0.1);text-align:center}
+.measure-card .icon{font-size:28px;margin-bottom:8px}
+.measure-card .value{font-size:24px;font-weight:800;color:var(--primary)}
+.measure-card .unit{font-size:13px;color:var(--muted)}
+.measure-card .label{font-size:13px;color:var(--text);font-weight:600;margin-top:4px}
+.size-result{background:linear-gradient(135deg,var(--primary),#7B6FEF);color:#fff;
+  border-radius:var(--radius);padding:24px;width:100%;max-width:480px;margin-bottom:16px;
+  text-align:center;box-shadow:0 8px 32px rgba(91,79,207,0.35)}
+.size-result .size-num{font-size:56px;font-weight:900;line-height:1}
+.size-result .size-unit{font-size:18px;opacity:.9}
+.size-result .size-range{font-size:14px;opacity:.8;margin-top:8px}
+.size-result .size-label{font-size:15px;opacity:.9;margin-bottom:8px}
+.confidence-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;
+  font-size:13px;font-weight:700;margin-top:12px}
+.conf-high{background:rgba(255,255,255,0.25);color:#fff}
+.conf-medium{background:rgba(255,255,255,0.2);color:#fff}
+.conf-low{background:rgba(255,100,100,0.3);color:#fff}
+.section-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:12px;width:100%;max-width:480px}
+.brand-card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 4px 16px rgba(91,79,207,0.1);
+  margin-bottom:12px;width:100%;max-width:480px;border-left:4px solid var(--primary)}
+.brand-card .brand-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.brand-card .brand-name{font-size:16px;font-weight:800;color:var(--text)}
+.brand-card .brand-match{font-size:12px;background:var(--primary-light);color:var(--primary);
+  padding:3px 10px;border-radius:20px;font-weight:700}
+.brand-card .brand-desc{font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.4}
+.brand-card .brand-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tag{font-size:12px;background:#f5f5ff;color:var(--primary);padding:3px 10px;border-radius:20px}
+.brand-card .brand-price{font-size:14px;font-weight:700;color:var(--text)}
+.brand-card .brand-price span{color:var(--muted);font-weight:400;font-size:13px}
+.width-bar-wrapper{width:100%;max-width:480px;margin-bottom:16px}
+.width-bar-title{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:8px}
+.width-bar{height:24px;background:linear-gradient(90deg,#a8edea,#fed6e3,#ffa09b);
+  border-radius:12px;position:relative;overflow:hidden}
+.width-indicator{position:absolute;top:50%;transform:translateY(-50%);width:16px;height:16px;
+  background:var(--primary);border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  transition:left .5s ease}
+.width-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px;padding:0 2px}
+.error-card{background:#FFF0F0;border:1px solid #FFD0D0;border-radius:var(--radius);
+  padding:20px;width:100%;max-width:480px;text-align:center;margin-bottom:16px}
+.error-card h3{color:var(--accent);font-size:17px;margin-bottom:8px}
+.error-card p{color:var(--muted);font-size:14px;line-height:1.5}
+.retake-row{display:flex;gap:10px;width:100%;max-width:480px;margin-bottom:10px}
+.retake-row .btn{flex:1}
+/* SVG guide */
+.guide-illustration{margin:16px 0}
+/* Transitions */
+.screen{animation:fadeSlide .3s ease forwards}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+/* No camera fallback */
+.no-camera-fallback{width:100%;max-width:480px;background:var(--card);border-radius:var(--radius);
+  padding:32px;text-align:center;box-shadow:var(--shadow)}
+.no-camera-fallback p{color:var(--muted);font-size:14px;margin-bottom:16px}
+.file-label{display:inline-block;padding:14px 28px;background:linear-gradient(135deg,var(--primary),#7B6FEF);
+  color:#fff;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- ==================== SCREEN 1: INTRO ==================== -->
+<div class="screen active" id="screen-intro">
+  <div class="hero card">
+    <span class="hero-icon">👟</span>
+    <h1>こどもの足サイズ<br>計測アプリ</h1>
+    <p>写真を撮るだけで足のサイズ（長さ・幅・甲の高さ）を計測し、最適な靴をご提案します</p>
+  </div>
+
+  <div class="card">
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="step-num">1</div>
+        <div class="step-text"><h3>写真を撮影</h3><p>A4用紙の上に足を置き、真上・横から撮影</p></div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">2</div>
+        <div class="step-text"><h3>AIが自動計測</h3><p>Claude AIがA4用紙を基準に長さ・幅・甲の高さを計算</p></div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">3</div>
+        <div class="step-text"><h3>最適な靴を提案</h3><p>足型に合ったブランドとサイズをご提案</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="input-group">
+      <label>Anthropic APIキー</label>
+      <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off">
+    </div>
+    <div class="notice">🔒 APIキーはこのタブ内のみで使用され、外部には送信されません。タブを閉じると自動的に消去されます。</div>
+    <div id="key-error" style="color:var(--accent);font-size:13px;margin-bottom:12px;display:none"></div>
+    <button class="btn btn-primary" onclick="startApp()">はじめる →</button>
+  </div>
+  <div style="height:20px"></div>
+</div>
+
+<!-- ==================== SCREEN 2: GUIDE ==================== -->
+<div class="screen" id="screen-guide">
+  <div class="app-header">
+    <button class="back-btn" onclick="showScreen('screen-intro')">←</button>
+    <div class="step-dots">
+      <div class="dot done"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+    <div style="width:40px"></div>
+  </div>
+
+  <div style="width:100%;max-width:480px;margin-bottom:16px">
+    <h2 style="font-size:22px;font-weight:800;color:var(--primary)">撮影の準備</h2>
+    <p style="color:var(--muted);font-size:14px;margin-top:4px">以下の手順で準備してください</p>
+  </div>
+
+  <div class="card guide-illustration">
+    <svg viewBox="0 0 320 200" width="100%" style="max-width:320px;display:block;margin:0 auto">
+      <!-- A4 paper -->
+      <rect x="60" y="20" width="200" height="160" rx="4" fill="#F8F9FF" stroke="#5B4FCF" stroke-width="2" stroke-dasharray="6,4"/>
+      <text x="160" y="15" text-anchor="middle" fill="#5B4FCF" font-size="11" font-weight="bold">A4用紙 (297×210mm)</text>
+      <!-- Foot outline -->
+      <path d="M 110 160 Q 95 130 100 80 Q 105 50 120 45 Q 135 42 145 48 Q 155 44 165 48 Q 175 44 182 50 Q 190 44 195 52 Q 200 58 195 68 Q 200 72 195 80 Q 190 86 182 84 Q 180 90 175 92 Q 178 100 172 108 Q 175 120 168 135 Q 162 150 155 160 Z" fill="#FFD4C8" stroke="#FF9980" stroke-width="1.5"/>
+      <!-- Toes -->
+      <ellipse cx="125" cy="45" rx="8" ry="6" fill="#FFD4C8" stroke="#FF9980" stroke-width="1.5"/>
+      <ellipse cx="143" cy="42" rx="7" ry="5" fill="#FFD4C8" stroke="#FF9980" stroke-width="1.5"/>
+      <ellipse cx="160" cy="42" rx="7" ry="5" fill="#FFD4C8" stroke="#FF9980" stroke-width="1.5"/>
+      <ellipse cx="177" cy="44" rx="6" ry="5" fill="#FFD4C8" stroke="#FF9980" stroke-width="1.5"/>
+      <ellipse cx="191" cy="48" rx="5" ry="4" fill="#FFD4C8" stroke="#FF9980" stroke-width="1.5"/>
+      <!-- Length arrow -->
+      <line x1="90" y1="42" x2="90" y2="162" stroke="#5B4FCF" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <polygon points="90,38 86,48 94,48" fill="#5B4FCF"/>
+      <polygon points="90,166 86,156 94,156" fill="#5B4FCF"/>
+      <text x="70" y="105" text-anchor="middle" fill="#5B4FCF" font-size="10" font-weight="bold" transform="rotate(-90,70,105)">長さ</text>
+      <!-- Width arrow -->
+      <line x1="108" y1="180" x2="195" y2="180" stroke="#FF6B6B" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <polygon points="104,180 114,176 114,184" fill="#FF6B6B"/>
+      <polygon points="199,180 189,176 189,184" fill="#FF6B6B"/>
+      <text x="151" y="195" text-anchor="middle" fill="#FF6B6B" font-size="10" font-weight="bold">幅</text>
+    </svg>
+  </div>
+
+  <div class="card">
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="step-num">1</div>
+        <div class="step-text"><h3>A4用紙を床に置く</h3><p>白紙のA4用紙（コピー用紙など）を平らな床に置いてください</p></div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">2</div>
+        <div class="step-text"><h3>足をA4の上に置く</h3><p>かかとをA4の端に合わせ、足全体が用紙内に収まるよう置いてください</p></div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">3</div>
+        <div class="step-text"><h3>真上から撮影</h3><p>A4用紙全体と足が写るよう、真上から撮影してください（ブレに注意）</p></div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">4</div>
+        <div class="step-text"><h3>横からも撮影（任意）</h3><p>甲の高さ確認のため、足の横からも撮影すると精度が上がります</p></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="showScreen('screen-capture-top')">撮影に進む →</button>
+  <div style="height:20px"></div>
+</div>
+
+<!-- ==================== SCREEN 3: TOP CAPTURE ==================== -->
+<div class="screen" id="screen-capture-top">
+  <div class="app-header">
+    <button class="back-btn" onclick="goBackFromCapture('top')">←</button>
+    <div class="step-dots">
+      <div class="dot done"></div><div class="dot done"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+    <div style="width:40px"></div>
+  </div>
+
+  <div style="width:100%;max-width:480px;margin-bottom:12px">
+    <h2 style="font-size:20px;font-weight:800;color:var(--primary)">📷 上から撮影</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:4px">A4用紙ごと足全体が写るよう、真上から撮影してください</p>
+  </div>
+
+  <div id="camera-top-wrapper" class="camera-wrapper">
+    <video id="video-top" autoplay playsinline muted></video>
+    <div class="camera-overlay"><div class="frame-guide"></div></div>
+  </div>
+
+  <div id="no-camera-top" class="no-camera-fallback" style="display:none">
+    <p>カメラにアクセスできませんでした。<br>写真ファイルを選択してください。</p>
+    <label class="file-label" for="file-top-hidden">📂 写真を選ぶ</label>
+    <input type="file" id="file-top-hidden" accept="image/*" style="display:none" onchange="handleFileSelect(event,'top')">
+  </div>
+
+  <div id="photo-preview-top" class="photo-preview">
+    <div class="photo-preview-badge">✅ 撮影完了</div>
+    <img id="photo-thumb-top" src="" alt="撮影した写真">
+  </div>
+
+  <div class="camera-controls">
+    <div id="capture-top-btn-row" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+      <button class="capture-btn" id="capture-top-btn" onclick="capturePhoto('top')" title="撮影">📸</button>
+      <label style="cursor:pointer;color:var(--muted);font-size:13px" for="file-top-input">
+        または <span style="color:var(--primary);font-weight:700">ファイルから選ぶ</span>
+      </label>
+      <input type="file" id="file-top-input" accept="image/*" style="display:none" onchange="handleFileSelect(event,'top')">
+    </div>
+    <div id="next-top-btns" style="display:none;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" onclick="goToSideCapture()">次へ（横から撮影）→</button>
+      <button class="btn btn-ghost" onclick="skipToAnalyze()">スキップして解析する</button>
+    </div>
+    <button class="btn btn-ghost" onclick="retakePhoto('top')" id="retake-top-btn" style="display:none">📷 撮り直す</button>
+  </div>
+  <div style="height:20px"></div>
+</div>
+
+<!-- ==================== SCREEN 4: SIDE CAPTURE ==================== -->
+<div class="screen" id="screen-capture-side">
+  <div class="app-header">
+    <button class="back-btn" onclick="goBackFromCapture('side')">←</button>
+    <div class="step-dots">
+      <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div><div class="dot"></div>
+    </div>
+    <div style="width:40px"></div>
+  </div>
+
+  <div style="width:100%;max-width:480px;margin-bottom:12px">
+    <h2 style="font-size:20px;font-weight:800;color:var(--primary)">📷 横から撮影（任意）</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:4px">足の甲の高さを確認するため、横から撮影してください</p>
+  </div>
+
+  <div id="camera-side-wrapper" class="camera-wrapper">
+    <video id="video-side" autoplay playsinline muted></video>
+    <div class="camera-overlay">
+      <div style="border:3px dashed rgba(255,255,255,0.6);border-radius:12px;width:90%;height:70%;position:relative">
+        <div style="position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.8);font-size:13px;white-space:nowrap;background:rgba(0,0,0,0.4);padding:4px 10px;border-radius:20px">足の横向きをここに</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="no-camera-side" class="no-camera-fallback" style="display:none">
+    <p>カメラにアクセスできませんでした。<br>写真ファイルを選択してください。</p>
+    <label class="file-label" for="file-side-hidden">📂 写真を選ぶ</label>
+    <input type="file" id="file-side-hidden" accept="image/*" style="display:none" onchange="handleFileSelect(event,'side')">
+  </div>
+
+  <div id="photo-preview-side" class="photo-preview">
+    <div class="photo-preview-badge">✅ 撮影完了</div>
+    <img id="photo-thumb-side" src="" alt="撮影した写真">
+  </div>
+
+  <div class="camera-controls">
+    <div id="capture-side-btn-row" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+      <button class="capture-btn" id="capture-side-btn" onclick="capturePhoto('side')" title="撮影">📸</button>
+      <label style="cursor:pointer;color:var(--muted);font-size:13px" for="file-side-input">
+        または <span style="color:var(--primary);font-weight:700">ファイルから選ぶ</span>
+      </label>
+      <input type="file" id="file-side-input" accept="image/*" style="display:none" onchange="handleFileSelect(event,'side')">
+    </div>
+    <div id="next-side-btns" style="display:none;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" onclick="startAnalysis()">解析する →</button>
+    </div>
+    <button class="btn btn-ghost" onclick="retakePhoto('side')" id="retake-side-btn" style="display:none">📷 撮り直す</button>
+    <button class="btn btn-ghost" onclick="skipSideAndAnalyze()">スキップして解析する</button>
+  </div>
+  <div style="height:20px"></div>
+</div>
+
+<!-- ==================== SCREEN 5: ANALYZING ==================== -->
+<div class="screen" id="screen-analyzing">
+  <div class="analyzing-container">
+    <div class="analyzing-icon">👟</div>
+    <div class="analyzing-title">AIが解析中...</div>
+    <div class="analyzing-status" id="analyzing-status">写真を確認しています...</div>
+    <div class="progress-bar-wrapper">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <div class="dots-loading">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 6: RESULTS ==================== -->
+<div class="screen" id="screen-results">
+  <div class="app-header">
+    <div></div>
+    <div class="step-dots">
+      <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div>
+    </div>
+    <div style="width:40px"></div>
+  </div>
+
+  <div class="results-header">
+    <h1>📊 計測結果</h1>
+    <p id="results-subtitle">AIによる足のサイズ計測が完了しました</p>
+  </div>
+
+  <!-- Error display -->
+  <div class="error-card" id="error-card" style="display:none">
+    <h3>⚠️ 計測エラー</h3>
+    <p id="error-message"></p>
+  </div>
+
+  <!-- Measurements grid -->
+  <div class="measurement-grid" id="measurements-grid">
+    <div class="measure-card">
+      <div class="icon">📏</div>
+      <div class="value" id="result-length">---</div>
+      <div class="unit">mm</div>
+      <div class="label">足の長さ</div>
+    </div>
+    <div class="measure-card">
+      <div class="icon">↔️</div>
+      <div class="value" id="result-width">---</div>
+      <div class="unit">mm</div>
+      <div class="label">足の幅</div>
+    </div>
+    <div class="measure-card">
+      <div class="icon">⛰️</div>
+      <div class="value" id="result-instep">---</div>
+      <div class="unit"></div>
+      <div class="label">甲の高さ</div>
+    </div>
+    <div class="measure-card">
+      <div class="icon">📐</div>
+      <div class="value" id="result-width-cat">---</div>
+      <div class="unit"></div>
+      <div class="label">足幅カテゴリ</div>
+    </div>
+  </div>
+
+  <!-- Width bar visualization -->
+  <div class="width-bar-wrapper" id="width-bar-container" style="display:none">
+    <div class="width-bar-title">足幅の位置</div>
+    <div class="width-bar">
+      <div class="width-indicator" id="width-indicator" style="left:50%"></div>
+    </div>
+    <div class="width-labels">
+      <span>細め(D)</span><span>標準(E)</span><span>幅広(EE)</span><span>超幅広(EEE+)</span>
+    </div>
+  </div>
+
+  <!-- Recommended shoe size -->
+  <div class="size-result" id="size-result-card">
+    <div class="size-label">推奨シューズサイズ</div>
+    <div>
+      <span class="size-num" id="shoe-size-num">--.-</span>
+      <span class="size-unit">cm</span>
+    </div>
+    <div class="size-range" id="shoe-size-range">サイズ範囲: --〜-- cm</div>
+    <div id="confidence-badge" class="confidence-badge conf-medium">
+      <span id="confidence-text">計測中...</span>
+    </div>
+  </div>
+
+  <!-- AI Notes -->
+  <div id="ai-notes-card" class="card" style="display:none;width:100%;max-width:480px;margin-bottom:16px">
+    <div style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:6px">AIからのメモ</div>
+    <div id="ai-notes-text" style="font-size:14px;color:var(--text);line-height:1.5"></div>
+  </div>
+
+  <!-- Brand recommendations -->
+  <div class="section-title" id="brands-title">おすすめの靴ブランド</div>
+  <div id="brand-cards-container"></div>
+
+  <!-- Retake buttons -->
+  <div class="retake-row">
+    <button class="btn btn-secondary" onclick="retakeAll()">📷 撮り直す</button>
+    <button class="btn btn-primary" onclick="showScreen('screen-intro')">🏠 最初から</button>
+  </div>
+  <div style="height:20px"></div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  apiKey: '',
+  topPhotoB64: null,
+  sidePhotoB64: null,
+  topStream: null,
+  sideStream: null,
+  results: null
+};
+
+// ============================================================
+// BRAND DATABASE
+// ============================================================
+const BRANDS = [
+  {
+    name: 'アシックス スクスク',
+    emoji: '🏃',
+    desc: '日本の定番子ども靴。成長サポート設計で人気No.1ブランド',
+    widths: ['D','E','EE'],
+    insteps: ['normal','high'],
+    price: '4,500〜6,500円',
+    features: ['つま先ゆったり','成長サポート','ムレ防止','洗える']
+  },
+  {
+    name: 'ムーンスター ゲンキキッズ',
+    emoji: '⭐',
+    desc: '国産品質で甲高・幅広対応。豊富なサイズ展開が魅力',
+    widths: ['E','EE','EEE'],
+    insteps: ['normal','high'],
+    price: '3,500〜5,500円',
+    features: ['甲高対応','国産品質','フィット感◎','コスパ良']
+  },
+  {
+    name: 'IFME（イフミー）',
+    emoji: '💨',
+    desc: '幅広・甲高の子どもに特におすすめ。軽量で通気性抜群',
+    widths: ['EE','EEE','EEEE'],
+    insteps: ['normal','high'],
+    price: '3,800〜5,800円',
+    features: ['幅広設計','軽量','通気性◎','成長対応']
+  },
+  {
+    name: 'ニューバランス',
+    emoji: '🔵',
+    desc: '幅広仕様で安定感抜群。スポーティなデザインも人気',
+    widths: ['EE','EEE'],
+    insteps: ['low','normal'],
+    price: '5,000〜8,000円',
+    features: ['幅広設計','クッション性◎','デザイン豊富','耐久性']
+  },
+  {
+    name: 'ミズノ',
+    emoji: '🎽',
+    desc: 'スリムな足型向け。スポーツ志向の高品質シューズ',
+    widths: ['D','E'],
+    insteps: ['low','normal'],
+    price: '4,000〜7,000円',
+    features: ['スリム設計','高品質','スポーツ仕様','日本製']
+  },
+  {
+    name: 'アキレス',
+    emoji: '🏅',
+    desc: 'コスパ最高の国産ブランド。幅広・甲高対応も充実',
+    widths: ['E','EE','EEE'],
+    insteps: ['normal','high'],
+    price: '2,500〜4,500円',
+    features: ['コスパ◎','国産','幅広対応','サイズ豊富']
+  }
+];
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function getWidthCategory(widthMm, lengthMm) {
+  const ratio = widthMm / lengthMm;
+  if (ratio < 0.365) return { code:'D', label:'D（細め）', pos:5 };
+  if (ratio < 0.385) return { code:'E', label:'E（標準）', pos:30 };
+  if (ratio < 0.405) return { code:'EE', label:'EE（やや幅広）', pos:57 };
+  if (ratio < 0.425) return { code:'EEE', label:'EEE（幅広）', pos:80 };
+  return { code:'EEEE', label:'EEEE（超幅広）', pos:95 };
+}
+
+function calcShoeSize(lengthMm) {
+  const cm = lengthMm / 10;
+  const withAllowance = cm + 0.5;
+  const rounded = Math.round(withAllowance * 2) / 2;
+  return { cm: cm.toFixed(1), recommended: rounded.toFixed(1), range: `${rounded.toFixed(1)}〜${(rounded+0.5).toFixed(1)}` };
+}
+
+function instepLabel(h) {
+  return h==='high' ? '高め' : h==='low' ? '低め' : '標準';
+}
+
+function confidenceLabel(c) {
+  return c==='high' ? '高精度' : c==='low' ? '要確認' : '中精度';
+}
+
+function resizeImageB64(file, maxPx=800) {
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const ratio = Math.min(maxPx/img.width, maxPx/img.height, 1);
+      const w = Math.round(img.width*ratio), h = Math.round(img.height*ratio);
+      const c = document.createElement('canvas');
+      c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg',0.85).split(',')[1]);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function captureFromVideo(videoEl, maxPx=800) {
+  const c = document.createElement('canvas');
+  c.width = videoEl.videoWidth; c.height = videoEl.videoHeight;
+  c.getContext('2d').drawImage(videoEl,0,0);
+  const ratio = Math.min(maxPx/c.width, maxPx/c.height, 1);
+  if (ratio < 1) {
+    const c2 = document.createElement('canvas');
+    c2.width = Math.round(c.width*ratio); c2.height = Math.round(c.height*ratio);
+    c2.getContext('2d').drawImage(c,0,0,c2.width,c2.height);
+    return c2.toDataURL('image/jpeg',0.85).split(',')[1];
+  }
+  return c.toDataURL('image/jpeg',0.85).split(',')[1];
+}
+
+// ============================================================
+// SCREEN NAVIGATION
+// ============================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function startApp() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const err = document.getElementById('key-error');
+  if (!key) { err.textContent='APIキーを入力してください'; err.style.display='block'; return; }
+  if (!key.startsWith('sk-ant-')) { err.textContent='APIキーの形式が正しくありません（sk-ant-...）'; err.style.display='block'; return; }
+  err.style.display='none';
+  state.apiKey = key;
+  sessionStorage.setItem('claude_api_key', key);
+  showScreen('screen-guide');
+}
+
+function goBackFromCapture(type) {
+  stopStream(type);
+  if (type==='top') showScreen('screen-guide');
+  else showScreen('screen-capture-top');
+}
+
+function goToSideCapture() {
+  stopStream('top');
+  showScreen('screen-capture-side');
+  initCamera('side');
+}
+
+function skipToAnalyze() {
+  if (!state.topPhotoB64) { alert('先に上からの写真を撮影してください'); return; }
+  stopStream('top');
+  startAnalysis();
+}
+
+function skipSideAndAnalyze() {
+  stopStream('side');
+  startAnalysis();
+}
+
+function retakeAll() {
+  state.topPhotoB64 = null; state.sidePhotoB64 = null;
+  document.getElementById('photo-preview-top').style.display='none';
+  document.getElementById('photo-preview-side').style.display='none';
+  document.getElementById('next-top-btns').style.display='none';
+  document.getElementById('next-side-btns').style.display='none';
+  document.getElementById('capture-top-btn-row').style.display='flex';
+  document.getElementById('capture-side-btn-row').style.display='flex';
+  document.getElementById('retake-top-btn').style.display='none';
+  document.getElementById('retake-side-btn').style.display='none';
+  showScreen('screen-capture-top');
+  initCamera('top');
+}
+
+function retakePhoto(type) {
+  if (type==='top') {
+    state.topPhotoB64 = null;
+    document.getElementById('photo-preview-top').style.display='none';
+    document.getElementById('next-top-btns').style.display='none';
+    document.getElementById('capture-top-btn-row').style.display='flex';
+    document.getElementById('retake-top-btn').style.display='none';
+    document.getElementById('camera-top-wrapper').style.display='block';
+    initCamera('top');
+  } else {
+    state.sidePhotoB64 = null;
+    document.getElementById('photo-preview-side').style.display='none';
+    document.getElementById('next-side-btns').style.display='none';
+    document.getElementById('capture-side-btn-row').style.display='flex';
+    document.getElementById('retake-side-btn').style.display='none';
+    document.getElementById('camera-side-wrapper').style.display='block';
+    initCamera('side');
+  }
+}
+</script>
+<script>
+// ============================================================
+// CAMERA
+// ============================================================
+async function initCamera(type) {
+  const videoId = type==='top' ? 'video-top' : 'video-side';
+  const wrapperId = type==='top' ? 'camera-top-wrapper' : 'camera-side-wrapper';
+  const noId = type==='top' ? 'no-camera-top' : 'no-camera-side';
+  const video = document.getElementById(videoId);
+  const wrapper = document.getElementById(wrapperId);
+  const noCamera = document.getElementById(noId);
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal:'environment' }, width:{ideal:1920}, height:{ideal:1080} }
+    });
+    if (type==='top') state.topStream = stream;
+    else state.sideStream = stream;
+    video.srcObject = stream;
+    wrapper.style.display='block';
+    noCamera.style.display='none';
+  } catch(e) {
+    console.warn('Camera unavailable:', e);
+    wrapper.style.display='none';
+    noCamera.style.display='block';
+  }
+}
+
+function stopStream(type) {
+  const s = type==='top' ? state.topStream : state.sideStream;
+  if (s) { s.getTracks().forEach(t=>t.stop()); }
+  if (type==='top') state.topStream = null;
+  else state.sideStream = null;
+}
+
+function capturePhoto(type) {
+  const videoId = type==='top' ? 'video-top' : 'video-side';
+  const video = document.getElementById(videoId);
+  if (!video.srcObject || video.videoWidth===0) {
+    alert('カメラが準備できていません。少し待ってから再試行してください。');
+    return;
+  }
+  const b64 = captureFromVideo(video);
+  if (type==='top') state.topPhotoB64 = b64;
+  else state.sidePhotoB64 = b64;
+  showPhotoPreview(type, b64);
+}
+
+function handleFileSelect(event, type) {
+  const file = event.target.files[0];
+  if (!file) return;
+  resizeImageB64(file).then(b64 => {
+    if (type==='top') state.topPhotoB64 = b64;
+    else state.sidePhotoB64 = b64;
+    showPhotoPreview(type, b64);
+  });
+}
+
+function showPhotoPreview(type, b64) {
+  const previewId = type==='top' ? 'photo-preview-top' : 'photo-preview-side';
+  const thumbId   = type==='top' ? 'photo-thumb-top'   : 'photo-thumb-side';
+  const btnRowId  = type==='top' ? 'capture-top-btn-row' : 'capture-side-btn-row';
+  const nextId    = type==='top' ? 'next-top-btns'     : 'next-side-btns';
+  const retakeId  = type==='top' ? 'retake-top-btn'    : 'retake-side-btn';
+  const wrapperId = type==='top' ? 'camera-top-wrapper' : 'camera-side-wrapper';
+
+  document.getElementById(thumbId).src = 'data:image/jpeg;base64,'+b64;
+  document.getElementById(previewId).style.display='block';
+  document.getElementById(btnRowId).style.display='none';
+  document.getElementById(nextId).style.display='flex';
+  document.getElementById(retakeId).style.display='block';
+  document.getElementById(wrapperId).style.display='none';
+}
+
+// ============================================================
+// CLAUDE API
+// ============================================================
+async function callClaude(b64Image, promptText) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': state.apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({
+      model:'claude-opus-4-6',
+      max_tokens:512,
+      messages:[{
+        role:'user',
+        content:[
+          { type:'image', source:{ type:'base64', media_type:'image/jpeg', data:b64Image } },
+          { type:'text', text: promptText }
+        ]
+      }]
+    })
+  });
+  if (!resp.ok) {
+    const e = await resp.json().catch(()=>({}));
+    throw new Error(e.error?.message || `APIエラー (${resp.status})`);
+  }
+  const data = await resp.json();
+  const text = data.content[0].text;
+  const m = text.match(/\{[\s\S]*?\}/);
+  if (!m) throw new Error('AIの回答を解析できませんでした: '+text.substring(0,100));
+  return JSON.parse(m[0]);
+}
+
+const TOP_PROMPT = `この写真には子どもの足（真上から撮影）とA4用紙（297mm×210mm）が写っています。
+A4用紙のサイズを基準として、以下を正確に計測してください：
+1. 足の長さ（かかとから最も長い指先まで）をmm単位で
+2. 足の幅（親指の付け根から小指の付け根の最大幅）をmm単位で
+A4用紙が確認できない場合はconfidenceを"low"にしてください。
+必ず以下のJSON形式のみで回答してください（説明文不要）：
+{"length": 数値, "width": 数値, "confidence": "high"|"medium"|"low", "notes": "簡単なメモ（日本語）"}`;
+
+const SIDE_PROMPT = `この写真には子どもの足（横から撮影）が写っています。
+足の甲の高さを以下の基準で評価してください：
+- "low": 甲が低い（ローボリューム）
+- "normal": 標準的な甲の高さ
+- "high": 甲が高い（ハイボリューム）
+必ず以下のJSON形式のみで回答してください：
+{"instepHeight": "low"|"normal"|"high", "confidence": "high"|"medium"|"low"}`;
+
+// ============================================================
+// ANALYSIS
+// ============================================================
+async function startAnalysis() {
+  if (!state.topPhotoB64) {
+    alert('上からの写真が必要です。先に撮影してください。');
+    return;
+  }
+  stopStream('top'); stopStream('side');
+  showScreen('screen-analyzing');
+
+  const statusEl = document.getElementById('analyzing-status');
+  const fillEl = document.getElementById('progress-fill');
+
+  const steps = [
+    '写真を確認しています...',
+    '足の輪郭を検出中...',
+    'A4用紙を基準に計測中...',
+    '足幅を計算中...',
+    'おすすめの靴を選んでいます...'
+  ];
+  let si=0;
+  const ticker = setInterval(()=>{
+    si = (si+1) % steps.length;
+    statusEl.textContent = steps[si];
+  },1800);
+
+  // Progress bar animation
+  let pct=0;
+  const progressTicker = setInterval(()=>{
+    pct = Math.min(pct+2,88);
+    fillEl.style.width = pct+'%';
+  },200);
+
+  try {
+    // Analyze top photo
+    statusEl.textContent='足の長さ・幅を計測中...';
+    const topResult = await callClaude(state.topPhotoB64, TOP_PROMPT);
+
+    // Analyze side photo if available
+    let instepHeight = 'normal', instepConf = 'medium';
+    if (state.sidePhotoB64) {
+      statusEl.textContent='甲の高さを確認中...';
+      const sideResult = await callClaude(state.sidePhotoB64, SIDE_PROMPT);
+      instepHeight = sideResult.instepHeight || 'normal';
+      instepConf   = sideResult.confidence   || 'medium';
+    }
+
+    clearInterval(ticker); clearInterval(progressTicker);
+    fillEl.style.width='100%';
+    statusEl.textContent='計測完了！';
+
+    state.results = {
+      length:    parseFloat(topResult.length),
+      width:     parseFloat(topResult.width),
+      confidence: topResult.confidence || 'medium',
+      notes:      topResult.notes || '',
+      instepHeight,
+      instepConf
+    };
+
+    setTimeout(()=>showResults(), 600);
+
+  } catch(err) {
+    clearInterval(ticker); clearInterval(progressTicker);
+    showScreen('screen-results');
+    document.getElementById('error-card').style.display='block';
+    document.getElementById('error-message').textContent = err.message;
+    document.getElementById('measurements-grid').style.display='none';
+    document.getElementById('size-result-card').style.display='none';
+    document.getElementById('brands-title').style.display='none';
+    document.getElementById('brand-cards-container').innerHTML='';
+  }
+}
+</script>
+<script>
+// ============================================================
+// SHOW RESULTS
+// ============================================================
+function showResults() {
+  const r = state.results;
+  if (!r || isNaN(r.length) || isNaN(r.width)) {
+    showScreen('screen-results');
+    document.getElementById('error-card').style.display='block';
+    document.getElementById('error-message').textContent='計測値の取得に失敗しました。写真を確認して撮り直してください。';
+    return;
+  }
+
+  const shoe = calcShoeSize(r.length);
+  const wcat = getWidthCategory(r.width, r.length);
+
+  // Fill measurements
+  document.getElementById('result-length').textContent = Math.round(r.length);
+  document.getElementById('result-width').textContent  = Math.round(r.width);
+  document.getElementById('result-instep').textContent = instepLabel(r.instepHeight);
+  document.getElementById('result-width-cat').textContent = wcat.code;
+
+  // Width bar
+  const widthBarCont = document.getElementById('width-bar-container');
+  widthBarCont.style.display='block';
+  setTimeout(()=>{
+    document.getElementById('width-indicator').style.left = wcat.pos+'%';
+  },300);
+
+  // Shoe size
+  document.getElementById('shoe-size-num').textContent = shoe.recommended;
+  document.getElementById('shoe-size-range').textContent = `実寸 ${shoe.cm}cm → 推奨 ${shoe.range}cm`;
+
+  // Confidence
+  const badge = document.getElementById('confidence-badge');
+  const confClass = r.confidence==='high' ? 'conf-high' : r.confidence==='low' ? 'conf-low' : 'conf-medium';
+  badge.className = 'confidence-badge '+confClass;
+  badge.innerHTML = (r.confidence==='high'?'✅':'⚠️')+' 信頼度: '+confidenceLabel(r.confidence);
+
+  // AI notes
+  if (r.notes) {
+    document.getElementById('ai-notes-card').style.display='block';
+    document.getElementById('ai-notes-text').textContent = r.notes;
+  }
+
+  // Brand recommendations
+  const matched = BRANDS.filter(b =>
+    b.widths.includes(wcat.code) && b.insteps.includes(r.instepHeight)
+  );
+  const fallback = matched.length===0;
+  const toShow = fallback ? BRANDS.slice(0,3) : matched;
+
+  if (fallback) {
+    document.getElementById('brands-title').textContent = 'おすすめの靴ブランド（参考）';
+    document.getElementById('results-subtitle').textContent = '足型に近いブランドをご紹介します';
+  } else {
+    document.getElementById('brands-title').textContent = `おすすめの靴ブランド（${toShow.length}件）`;
+  }
+
+  const container = document.getElementById('brand-cards-container');
+  container.innerHTML = toShow.map(b => `
+    <div class="brand-card">
+      <div class="brand-top">
+        <div class="brand-name">${b.emoji} ${b.name}</div>
+        <div class="brand-match">${fallback?'参考':'おすすめ'}</div>
+      </div>
+      <div class="brand-desc">${b.desc}</div>
+      <div class="brand-tags">
+        ${b.features.map(f=>`<span class="tag">${f}</span>`).join('')}
+        <span class="tag">幅: ${b.widths.join('/')}</span>
+      </div>
+      <div class="brand-price">参考価格: ${b.price} <span>（税込・目安）</span></div>
+    </div>
+  `).join('');
+
+  // Show error card if low confidence
+  if (r.confidence==='low') {
+    document.getElementById('error-card').style.display='block';
+    document.getElementById('error-message').textContent='写真が不鮮明か、A4用紙が確認しにくかったため精度が低い可能性があります。できれば撮り直しをおすすめします。';
+  } else {
+    document.getElementById('error-card').style.display='none';
+  }
+
+  document.getElementById('measurements-grid').style.display='grid';
+  document.getElementById('size-result-card').style.display='block';
+  document.getElementById('brands-title').style.display='block';
+
+  showScreen('screen-results');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  // Restore API key from session if available
+  const saved = sessionStorage.getItem('claude_api_key');
+  if (saved) {
+    document.getElementById('api-key-input').value = saved;
+    state.apiKey = saved;
+  }
+
+  // Init camera when entering capture screens
+  // (lazily started when user enters that screen)
+
+  // Ensure capture screen initializes camera when shown
+  const topScreen = document.getElementById('screen-capture-top');
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach(m => {
+      if (m.target.id === 'screen-capture-top' && m.target.classList.contains('active')) {
+        if (!state.topStream && !state.topPhotoB64) initCamera('top');
+      }
+      if (m.target.id === 'screen-capture-side' && m.target.classList.contains('active')) {
+        if (!state.sideStream && !state.sidePhotoB64) initCamera('side');
+      }
+    });
+  });
+
+  document.querySelectorAll('.screen').forEach(s => {
+    observer.observe(s, { attributes:true, attributeFilter:['class'] });
+  });
+});
+</script>
+</body>
+</html>
