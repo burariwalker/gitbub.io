@@ -1,11 +1,11 @@
 ﻿#requires -Version 5.1
 <#
 .SYNOPSIS
-    NDLOCR-Lite ポータブル版ビルドスクリプト
+    NDLOCR-Lite Portable Build Script
 .DESCRIPTION
-    Windows 11環境でPythonをインストールしていないユーザーでも実行できる
-    「NDLOCR-Lite PDF OCRツール」のポータブル一式を自動構築する。
-    実行すると NDLOCR-Lite-Portable フォルダが生成される。
+    Automatically builds a self-contained NDLOCR-Lite PDF OCR tool
+    for Windows 11 users who do not have Python installed.
+    Run this script once to generate the NDLOCR-Lite-Portable folder.
 #>
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -13,20 +13,19 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 $ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'Stop'
 
-# ---- URL設定 ----
+# ---- URLs ----
 $pythonZipUrl = 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip'
 $getPipUrl    = 'https://bootstrap.pypa.io/get-pip.py'
 $ndlZipUrl    = 'https://github.com/ndl-lab/ndlocr-lite/archive/refs/heads/master.zip'
 
-# ---- パス設定 ----
+# ---- Paths ----
 $portableDir = Join-Path $PSScriptRoot 'NDLOCR-Lite-Portable'
 $pythonDir   = Join-Path $portableDir 'python'
 $ndlDir      = Join-Path $portableDir 'ndlocr-lite'
 $pythonExe   = Join-Path $pythonDir 'python.exe'
 
-# ---- エンコーディング ----
+# ---- Encodings ----
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
-$utf8Bom   = New-Object System.Text.UTF8Encoding $true
 
 function Write-Step([string]$msg) {
     Write-Host ''
@@ -34,111 +33,112 @@ function Write-Step([string]$msg) {
 }
 
 function Fail([string]$msg) {
-    Write-Host "[エラー] $msg" -ForegroundColor Red
+    Write-Host "[ERROR] $msg" -ForegroundColor Red
     exit 1
 }
 
-# ===== Step 0: ポータブルフォルダ準備 =====
-Write-Step 'ポータブルフォルダを準備しています...'
+# ===== Step 0: Prepare output folder =====
+Write-Step 'Preparing output folder...'
 if (Test-Path $portableDir) {
-    Write-Host '  既存の NDLOCR-Lite-Portable を削除して再作成します...'
+    Write-Host '  Removing existing NDLOCR-Lite-Portable folder...'
     Remove-Item $portableDir -Recurse -Force
 }
 New-Item -ItemType Directory -Path $portableDir | Out-Null
-Write-Host "  フォルダ作成完了: $portableDir"
+Write-Host "  Created: $portableDir"
 
-# ===== Step 1: Python Embeddable のダウンロードと展開 =====
-Write-Step 'Step 1: Python 3.12.10 embeddable をダウンロード中...'
+# ===== Step 1: Download and extract Python Embeddable =====
+Write-Step 'Step 1: Downloading Python 3.12.10 embeddable...'
 $pythonZip = Join-Path $env:TEMP 'python-3.12.10-embed-amd64.zip'
 try {
     Invoke-WebRequest -Uri $pythonZipUrl -OutFile $pythonZip -UseBasicParsing
 } catch {
-    Fail "Python のダウンロードに失敗しました: $_"
+    Fail "Failed to download Python: $_"
 }
-Write-Host '  ダウンロード完了。展開中...'
+Write-Host '  Download complete. Extracting...'
 New-Item -ItemType Directory -Path $pythonDir | Out-Null
 Expand-Archive -Path $pythonZip -DestinationPath $pythonDir -Force
-Write-Host '  展開完了。'
+Write-Host '  Extraction complete.'
 
-# python312._pth を修正 (import site を有効化)
+# Edit python312._pth to enable import site
 $pthFile = Join-Path $pythonDir 'python312._pth'
 if (-not (Test-Path $pthFile)) {
-    Fail 'python312._pth が見つかりません。ダウンロードしたzipを確認してください。'
+    Fail 'python312._pth not found in extracted archive.'
 }
 $pthContent = [System.IO.File]::ReadAllText($pthFile, $utf8NoBom)
 if ($pthContent -match '(?m)^#import site') {
     $pthContent = $pthContent -replace '(?m)^#import site', 'import site'
     [System.IO.File]::WriteAllText($pthFile, $pthContent, $utf8NoBom)
-    Write-Host '  python312._pth を修正しました（import site 有効化）'
+    Write-Host '  python312._pth patched (import site enabled).'
 } else {
-    Write-Host '  python312._pth: import site はすでに有効です。'
+    Write-Host '  python312._pth: import site already enabled.'
 }
 
-# ===== Step 2: pip のインストール =====
-Write-Step 'Step 2: pip をインストール中...'
+# ===== Step 2: Install pip =====
+Write-Step 'Step 2: Installing pip...'
 $getPipScript = Join-Path $env:TEMP 'get-pip.py'
 try {
     Invoke-WebRequest -Uri $getPipUrl -OutFile $getPipScript -UseBasicParsing
 } catch {
-    Fail "get-pip.py のダウンロードに失敗しました: $_"
+    Fail "Failed to download get-pip.py: $_"
 }
-Write-Host '  get-pip.py をダウンロードしました。pip をインストール中...'
+Write-Host '  Running get-pip.py...'
 & $pythonExe $getPipScript
 if ($LASTEXITCODE -ne 0) {
-    Fail 'pip のインストールに失敗しました。'
+    Fail 'pip installation failed.'
 }
-Write-Host '  pip インストール完了。'
+Write-Host '  pip installed.'
 
-# ===== Step 3: NDLOCR-Lite のダウンロード =====
-Write-Step 'Step 3: NDLOCR-Lite をダウンロード中...'
+# ===== Step 3: Download NDLOCR-Lite =====
+Write-Step 'Step 3: Downloading NDLOCR-Lite...'
 $ndlZip = Join-Path $env:TEMP 'ndlocr-lite-master.zip'
 try {
     Invoke-WebRequest -Uri $ndlZipUrl -OutFile $ndlZip -UseBasicParsing
 } catch {
-    Fail "NDLOCR-Lite のダウンロードに失敗しました: $_"
+    Fail "Failed to download NDLOCR-Lite: $_"
 }
-Write-Host '  ダウンロード完了。展開中...'
+Write-Host '  Download complete. Extracting...'
 $ndlTemp = Join-Path $env:TEMP 'ndlocr-lite-extract'
 if (Test-Path $ndlTemp) { Remove-Item $ndlTemp -Recurse -Force }
 Expand-Archive -Path $ndlZip -DestinationPath $ndlTemp -Force
 
 $ndlMaster = Join-Path $ndlTemp 'ndlocr-lite-master'
 if (-not (Test-Path $ndlMaster)) {
-    Fail 'ndlocr-lite-master フォルダが展開先に見つかりません。'
+    Fail 'ndlocr-lite-master folder not found in extracted archive.'
 }
 Move-Item $ndlMaster $ndlDir
-Write-Host "  NDLOCR-Lite を配置しました: $ndlDir"
+Write-Host "  NDLOCR-Lite placed at: $ndlDir"
 
-# ===== Step 4: 依存ライブラリのインストール =====
-Write-Step 'Step 4: 依存ライブラリをインストール中...'
+# ===== Step 4: Install dependencies =====
+Write-Step 'Step 4: Installing dependencies...'
 $reqFile = Join-Path $ndlDir 'requirements.txt'
 if (-not (Test-Path $reqFile)) {
-    Fail 'requirements.txt が見つかりません。NDLOCR-Lite のダウンロードを確認してください。'
+    Fail 'requirements.txt not found. Check NDLOCR-Lite download.'
 }
 
-$reqLines    = [System.IO.File]::ReadAllLines($reqFile, $utf8NoBom)
+# Generate requirements_cli.txt excluding flet and pypdfium2
+$reqLines      = [System.IO.File]::ReadAllLines($reqFile, $utf8NoBom)
 $filteredLines = $reqLines | Where-Object {
     $_ -notmatch '^\s*flet' -and $_ -notmatch '^\s*pypdfium2'
 }
 $reqCliFile = Join-Path $ndlDir 'requirements_cli.txt'
 [System.IO.File]::WriteAllLines($reqCliFile, [string[]]$filteredLines, $utf8NoBom)
-Write-Host '  requirements_cli.txt を生成しました（flet, pypdfium2 を除外）'
+Write-Host '  requirements_cli.txt generated (flet and pypdfium2 excluded).'
 
-Write-Host '  パッケージをインストール中（数分かかる場合があります）...'
+Write-Host '  Installing packages (this may take several minutes)...'
 & $pythonExe -m pip install -r $reqCliFile
 if ($LASTEXITCODE -ne 0) {
-    Fail '依存ライブラリのインストールに失敗しました。'
+    Fail 'Dependency installation failed.'
 }
 
-Write-Host '  pymupdf を追加インストール中...'
+Write-Host '  Installing pymupdf...'
 & $pythonExe -m pip install pymupdf
 if ($LASTEXITCODE -ne 0) {
-    Fail 'pymupdf のインストールに失敗しました。'
+    Fail 'pymupdf installation failed.'
 }
-Write-Host '  依存ライブラリのインストール完了。'
+Write-Host '  All dependencies installed.'
 
-# ===== Step 5: ocr_batch_pdf.py を生成 =====
-Write-Step 'Step 5: ocr_batch_pdf.py を生成中...'
+# ===== Step 5: Generate ocr_batch_pdf.py =====
+Write-Step 'Step 5: Generating ocr_batch_pdf.py...'
 
 $srcDir = Join-Path $ndlDir 'src'
 if (-not (Test-Path $srcDir)) {
@@ -148,8 +148,9 @@ if (-not (Test-Path $srcDir)) {
 $ocrBatchContent = @'
 """
 ocr_batch_pdf.py
-input_dirフォルダ内の全PDFをNDLOCR-LiteでOCRし、
-元のPDFに透明テキスト(render_mode=3)を埋め込んでoutput_dirに出力する。
+Processes all PDFs in input_dir with NDLOCR-Lite OCR and embeds
+invisible text (render_mode=3) into the original PDF, saving results
+to output_dir.
 """
 
 import os
@@ -165,7 +166,6 @@ except Exception:
 
 import argparse
 import time
-import glob
 import numpy as np
 from pathlib import Path
 from PIL import Image
@@ -340,7 +340,6 @@ def embed_invisible_text(pdf_page, ocr_results, img_w, img_h):
 
 
 def process_single_pdf(input_pdf_path, output_pdf_path, dpi, detector, recognizer30, recognizer50, recognizer100):
-    """1つのPDFを処理する。引数はPathオブジェクトでもstrでもOK。"""
     input_str = str(input_pdf_path)
     output_str = str(output_pdf_path)
 
@@ -349,7 +348,7 @@ def process_single_pdf(input_pdf_path, output_pdf_path, dpi, detector, recognize
 
     for page_idx in range(total_pages):
         page_num = page_idx + 1
-        print(f"    ページ {page_num}/{total_pages} ...", end="", flush=True)
+        print(f"    page {page_num}/{total_pages} ...", end="", flush=True)
         page_start = time.time()
 
         page = doc[page_idx]
@@ -364,7 +363,7 @@ def process_single_pdf(input_pdf_path, output_pdf_path, dpi, detector, recognize
         embed_invisible_text(page, ocr_results, img_w, img_h)
 
         elapsed = time.time() - page_start
-        print(f" {len(ocr_results)}行認識 ({elapsed:.1f}秒)")
+        print(f" {len(ocr_results)} lines ({elapsed:.1f}s)")
 
     doc.save(output_str, garbage=4, deflate=True)
     doc.close()
@@ -376,7 +375,7 @@ def process_batch(args):
     dpi = args.dpi
 
     if not input_dir.is_dir():
-        print(f"[エラー] 入力フォルダが見つかりません: {input_dir}")
+        print(f"[ERROR] Input folder not found: {input_dir}")
         return
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -386,30 +385,32 @@ def process_batch(args):
 
     if len(pdf_files) == 0:
         print("")
-        print("[お知らせ] input_sousahyo フォルダにPDFファイルがありません。")
-        print("           PDFファイルを入れてから、もう一度実行してください。")
+        print("========================================")
+        print("  No PDF files in input_sousahyo folder.")
+        print("  Please add PDF files and try again.")
+        print("========================================")
         return
 
     print("")
     print("=" * 56)
-    print("  NDLOCR-Lite PDF OCR 一括処理")
+    print("  NDLOCR-Lite PDF OCR Batch Processing")
     print("=" * 56)
-    print(f"  入力フォルダ : {input_dir.resolve()}")
-    print(f"  出力フォルダ : {output_dir.resolve()}")
-    print(f"  対象ファイル : {len(pdf_files)} 件")
-    print(f"  DPI          : {dpi}")
+    print(f"  Input  : {input_dir.resolve()}")
+    print(f"  Output : {output_dir.resolve()}")
+    print(f"  Files  : {len(pdf_files)}")
+    print(f"  DPI    : {dpi}")
     print("=" * 56)
     print("")
 
-    print("[準備] AIモデルを読み込んでいます...")
-    print("       （初回は30秒ほどかかることがあります）")
+    print("[INIT] Loading AI models...")
+    print("       (May take ~30 seconds on first run)")
     model_start = time.time()
     detector = get_detector(args)
     recognizer100 = get_recognizer(args=args)
     recognizer30 = get_recognizer(args=args, weights_path=args.rec_weights30)
     recognizer50 = get_recognizer(args=args, weights_path=args.rec_weights50)
     model_elapsed = time.time() - model_start
-    print(f"[準備] 完了！ ({model_elapsed:.1f}秒)")
+    print(f"[INIT] Done ({model_elapsed:.1f}s)")
     print("")
 
     total_start = time.time()
@@ -431,10 +432,10 @@ def process_batch(args):
                 detector, recognizer30, recognizer50, recognizer100
             )
             file_elapsed = time.time() - file_start
-            print(f"  → 保存完了 ({file_elapsed:.1f}秒)")
+            print(f"  -> Saved ({file_elapsed:.1f}s)")
             success_count += 1
         except Exception as e:
-            print(f"  → [エラー] {e}")
+            print(f"  -> [ERROR] {e}")
             error_count += 1
             error_files.append(filename)
 
@@ -442,22 +443,22 @@ def process_batch(args):
 
     total_elapsed = time.time() - total_start
     print("=" * 56)
-    print("  処理結果")
+    print("  Results")
     print("=" * 56)
-    print(f"  成功 : {success_count} 件")
+    print(f"  Success : {success_count}")
     if error_count > 0:
-        print(f"  失敗 : {error_count} 件")
+        print(f"  Failed  : {error_count}")
         for ef in error_files:
-            print(f"         - {ef}")
-    print(f"  合計時間 : {total_elapsed:.1f}秒")
-    print(f"  出力先   : {output_dir.resolve()}")
+            print(f"            - {ef}")
+    print(f"  Time    : {total_elapsed:.1f}s")
+    print(f"  Output  : {output_dir.resolve()}")
     print("=" * 56)
     print("")
 
 
 def main():
     base_dir = Path(__file__).resolve().parent
-    parser = argparse.ArgumentParser(description="NDLOCR-Lite 複数PDF一括OCR")
+    parser = argparse.ArgumentParser(description="NDLOCR-Lite Batch PDF OCR")
     parser.add_argument("--input-dir", type=str, required=True)
     parser.add_argument("--output-dir", type=str, required=True)
     parser.add_argument("--dpi", type=int, default=300)
@@ -487,11 +488,12 @@ if __name__ == "__main__":
 
 $ocrBatchPath = Join-Path $srcDir 'ocr_batch_pdf.py'
 [System.IO.File]::WriteAllText($ocrBatchPath, $ocrBatchContent, $utf8NoBom)
-Write-Host "  ocr_batch_pdf.py を生成しました: $ocrBatchPath"
+Write-Host "  ocr_batch_pdf.py generated: $ocrBatchPath"
 
-# ===== Step 6: OCR実行.bat を生成 =====
-Write-Step 'Step 6: OCR実行.bat を生成中...'
+# ===== Step 6: Generate OCR実行.bat (ASCII, no Japanese) =====
+Write-Step 'Step 6: Generating OCR実行.bat...'
 
+# Pure ASCII content - cmd.exe reads this safely regardless of system locale
 $batContent = @'
 @echo off
 chcp 65001 >nul
@@ -504,113 +506,54 @@ set "SCRIPT=%PORTABLE_DIR%ndlocr-lite\src\ocr_batch_pdf.py"
 set "INPUT_DIR=%PORTABLE_DIR%input_sousahyo"
 set "OUTPUT_DIR=%PORTABLE_DIR%output"
 
-echo.
-echo ============================================
-echo   NDLOCR-Lite PDF OCR ツール
-echo ============================================
-echo.
-echo   input_sousahyo フォルダ内のPDFを
-echo   まとめてOCR処理します。
-echo.
-echo   結果は output フォルダに出力されます。
-echo ============================================
-echo.
-
-rem 入力フォルダにPDFがあるかチェック
-dir /b "%INPUT_DIR%\*.pdf" >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo [お知らせ] input_sousahyo フォルダにPDFファイルがありません。
-    echo            PDFファイルを入れてから、もう一度実行してください。
-    echo.
-    pause
-    exit /b
-)
-
-rem 処理実行
 "%PYTHON%" "%SCRIPT%" --input-dir "%INPUT_DIR%" --output-dir "%OUTPUT_DIR%" --dpi 300
 
-echo.
-if %ERRORLEVEL% EQU 0 (
-    echo 全ての処理が完了しました。output フォルダを確認してください。
-) else (
-    echo エラーが発生しました。上のメッセージを確認してください。
-)
-echo.
 pause
 '@
 
 $batPath = Join-Path $portableDir 'OCR実行.bat'
-[System.IO.File]::WriteAllText($batPath, $batContent, $utf8Bom)
-Write-Host "  OCR実行.bat を生成しました: $batPath"
+Set-Content -Path $batPath -Value $batContent -Encoding ASCII
+Write-Host "  OCR実行.bat generated: $batPath"
 
-# ===== Step 7: 空フォルダを作成 =====
-Write-Step 'Step 7: input_sousahyo / output フォルダを作成中...'
+# ===== Step 7: Create empty input/output folders =====
+Write-Step 'Step 7: Creating input_sousahyo and output folders...'
 New-Item -ItemType Directory -Path (Join-Path $portableDir 'input_sousahyo') | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $portableDir 'output') | Out-Null
-Write-Host '  フォルダを作成しました。'
+Write-Host '  Folders created.'
 
-# ===== Step 8: README.txt を生成 =====
-Write-Step 'Step 8: README.txt を生成中...'
+# ===== Step 8: Generate README.txt (UTF-8 no BOM) =====
+Write-Step 'Step 8: Generating README.txt...'
 
 $readmeContent = @'
 ==================================================
-  NDLOCR-Lite ポータブル版 PDF OCR ツール
-  使い方ガイド
+  NDLOCR-Lite Portable PDF OCR Tool
 ==================================================
 
-■ このツールでできること
-  スキャンしたPDFに透明テキストを埋め込み、
-  文字の検索・コピーができるPDFに変換します。
-  複数のPDFファイルをまとめて一括処理できます。
-  Pythonのインストールは不要です。
-  フォルダやファイル名に日本語が含まれていてもOKです。
+How to use:
 
-■ 使い方（3ステップ）
+  Step 1: Put PDF files into "input_sousahyo" folder.
+  Step 2: Double-click "OCR実行.bat".
+  Step 3: Check "output" folder for results.
 
-  ステップ1:
-    「input_sousahyo」フォルダにPDFファイルを入れる。
-    ファイルは何個でもOKです。
+Notes:
+  - Japanese file/folder names are supported.
+  - Processing takes ~5-10 seconds per page.
+  - Do not close the black window during processing.
+  - Existing files in output folder will be overwritten.
 
-  ステップ2:
-    「OCR実行.bat」をダブルクリックする。
-    黒い画面が開いて処理が始まります。
-    処理中は画面を閉じないでください。
-
-  ステップ3:
-    処理が完了したら「output」フォルダを開く。
-    同じファイル名でOCR済みPDFが保存されています。
-
-■ 処理時間の目安
-  1ページあたり 約5〜10秒（PCの性能によります）
-  例: 10ページのPDFが3つ → 約3〜5分
-
-■ 注意事項
-  - フォルダやファイル名に日本語が含まれていても動作します
-  - PCのメモリが4GB以上あることを推奨します
-  - outputフォルダに同名のファイルがあると上書きされます
-  - 処理中は黒い画面を閉じないでください
-
-■ うまくいかないとき
-  - PDFファイル名に特殊文字（& % ! 等）が含まれて
-    いるとエラーになることがあります。
-    ファイル名を変更してお試しください。
-  - 黒い画面に赤い文字でエラーが出た場合は、
-    その内容をシステム管理者にお伝えください。
-
-■ ライセンス
-  NDLOCR-Lite: CC BY 4.0（国立国会図書館）
+License:
+  NDLOCR-Lite: CC BY 4.0 (National Diet Library of Japan)
   https://github.com/ndl-lab/ndlocr-lite
 '@
 
 $readmePath = Join-Path $portableDir 'README.txt'
-[System.IO.File]::WriteAllText($readmePath, $readmeContent, $utf8Bom)
-Write-Host "  README.txt を生成しました: $readmePath"
+[System.IO.File]::WriteAllText($readmePath, $readmeContent, $utf8NoBom)
+Write-Host "  README.txt generated: $readmePath"
 
-# ===== 完了 =====
+# ===== Done =====
 Write-Host ''
 Write-Host '============================================' -ForegroundColor Green
-Write-Host '  ビルド完了！' -ForegroundColor Green
-Write-Host '============================================' -ForegroundColor Green
-Write-Host '  NDLOCR-Lite-Portable フォルダが作成されました。' -ForegroundColor Green
-Write-Host '  このフォルダは日本語パスに置いても動作します。' -ForegroundColor Green
+Write-Host '  Build complete!' -ForegroundColor Green
+Write-Host '  NDLOCR-Lite-Portable folder is ready.' -ForegroundColor Green
+Write-Host '  Japanese paths and filenames are supported.' -ForegroundColor Green
 Write-Host '============================================' -ForegroundColor Green
